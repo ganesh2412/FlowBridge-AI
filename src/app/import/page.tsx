@@ -1,5 +1,5 @@
-import Link from 'next/link';
 'use client';
+import Link from 'next/link';
 import {useState} from 'react';
 import * as XLSX from 'xlsx';
 import {validateRows,type ValidationResult} from '@/lib/records';
