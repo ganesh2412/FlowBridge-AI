@@ -5,7 +5,9 @@ function assemble(matrix:unknown[][]):ParsedSpreadsheet{
  if(!headers.length||headers.every(h=>!h))throw new Error('No column headers found');
  if(headers.some(h=>!h))throw new Error('Blank column headers found');
  if(new Set(headers).size!==headers.length)throw new Error('Duplicate column headers found');
- const rows=matrix.slice(1).filter(row=>row.some(value=>String(value??'').trim()!=='')).map(row=>Object.fromEntries(headers.map((header,index)=>[header,row[index]??''])));
+ const populated=matrix.slice(1).filter(row=>row.some(value=>String(value??'').trim()!==''));
+ for(const [index,row] of populated.entries())if(row.length>headers.length&&row.slice(headers.length).some(value=>String(value??'').trim()!==''))throw new Error('Row '+(index+2)+' has more values than column headers');
+ const rows=populated.map(row=>Object.fromEntries(headers.map((header,index)=>[header,row[index]??''])));
  if(rows.length>1000)throw new Error('Maximum 1,000 rows per file');
  if(!rows.length)throw new Error('No records found');
  return {headers,rows};
