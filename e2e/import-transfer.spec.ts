@@ -17,6 +17,11 @@ test('CSV import maps fields and transfers only valid synthetic records',async({
  await expect(page.getByText(/^Duplicates:\s*1$/)).toBeVisible();
  await page.getByTestId('transfer-to-crm').click();
  await expect(page.getByTestId('transfer-status')).toContainText('2 saved, 2 skipped');
+ await expect(page.getByText('Success rate: 50%')).toBeVisible();
+ const reportPromise=page.waitForEvent('download');
+ await page.getByTestId('download-execution-report').click();
+ const report=await reportPromise;
+ expect(report.suggestedFilename()).toBe('flowbridge-execution-report.csv');
  await page.goto('/demo-crm');
  await expect(page.getByTestId('crm-row-FLOW-101')).toContainText('Test Customer One');
  await expect(page.getByTestId('crm-row-FLOW-102')).toContainText('Test Customer Two');
