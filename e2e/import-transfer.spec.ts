@@ -31,7 +31,7 @@ test('CSV import maps fields and transfers only valid synthetic records',async({
  const historyDownloadPromise=page.waitForEvent('download');
  await page.getByRole('button',{name:'Download report'}).click();
  const historyDownload=await historyDownloadPromise;
- expect(historyDownload.suggestedFilename()).toMatch(/^flowbridge-history-.*\\.csv$/);
+ expect(historyDownload.suggestedFilename()).toMatch(/^flowbridge-history-.*\.csv$/);
  page.once('dialog',dialog=>dialog.accept());
  await page.getByRole('button',{name:'Clear execution history'}).click();
  await expect(page.getByText('No executions saved yet.')).toBeVisible();
