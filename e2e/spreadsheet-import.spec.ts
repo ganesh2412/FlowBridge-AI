@@ -25,6 +25,6 @@ test('rejects malformed XLSX without saving records',async({page})=>{
 
 test('rejects duplicate CSV column headers',async({page})=>{
  await page.locator('input[type="file"]').setInputFiles({name:'duplicate.csv',mimeType:'text/csv',buffer:Buffer.from('Case ID,Case ID,Client Name,Notes,Created Date\nONE,TWO,Demo,Example,2026-10-20')});
- await expect(page.getByRole('alert')).toContainText('Duplicate column headers');
+ await expect(page.getByText('Duplicate column headers found')).toBeVisible();
  await expect(page.getByTestId('transfer-to-crm')).toHaveCount(0);
 });
