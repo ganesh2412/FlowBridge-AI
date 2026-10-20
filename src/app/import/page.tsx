@@ -37,13 +37,13 @@ export default function ImportPage(){
   if(!/\.(xlsx|csv)$/i.test(file.name)){setError('Only .xlsx and .csv files are supported');return;}
   if(file.size>2_000_000){setError('Maximum file size is 2 MB');return;}
   try{
-   const workbook=XLSX.read(await file.arrayBuffer(),{type:'array',cellFormula:false,cellHTML:false,cellNF:false});
+   const workbook=XLSX.read(await file.arrayBuffer(),{type:'array',cellFormula:false,cellHTML:false,cellNF:false,raw:true});
    const sheet=workbook.Sheets[workbook.SheetNames[0]];
    if(!sheet)throw new Error('No worksheet found');
    const headerRow=XLSX.utils.sheet_to_json<unknown[]>(sheet,{header:1,blankrows:false})[0]??[];
    const foundHeaders=headerRow.map(String).map(s=>s.trim()).filter(Boolean);
    if(new Set(foundHeaders).size!==foundHeaders.length)throw new Error('Duplicate column headers found');
-   const data=XLSX.utils.sheet_to_json<Record<string,unknown>>(sheet,{defval:'',raw:false});
+   const data=XLSX.utils.sheet_to_json<Record<string,unknown>>(sheet,{defval:'',raw:true});
    if(data.length>1000)throw new Error('Maximum 1,000 rows per file');
    if(!data.length)throw new Error('No records found');
    setHeaders(foundHeaders);setMapping(suggestMapping(foundHeaders));setRawRows(data);setName(file.name);
