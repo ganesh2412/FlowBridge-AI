@@ -3,5 +3,38 @@ import Link from 'next/link';
 import {useState} from 'react';
 import * as XLSX from 'xlsx';
 import {validateRows,type ValidationResult} from '@/lib/records';
-const fields=['recordId','customerName','email','phone','description','date'];
-export default function ImportPage(){const [rows,setRows]=useState<ValidationResult[]>([]);const [error,setError]=useState('');const [name,setName]=useState('');async function load(file?:File){setRows([]);setError('');if(!file)return;if(!/\.(xlsx|csv)$/i.test(file.name)){setError('Only .xlsx and .csv files are supported');return}if(file.size>2_000_000){setError('Maximum file size is 2 MB');return}try{const bytes=await file.arrayBuffer();const workbook=XLSX.read(bytes,{type:'array',cellFormula:false,cellHTML:false,cellNF:false});const sheet=workbook.Sheets[workbook.SheetNames[0]];const data=XLSX.utils.sheet_to_json<Record<string,unknown>>(sheet,{defval:'',raw:false});if(data.length>1000)throw new Error('Maximum 1,000 rows per file');if(!data.length)throw new Error('No records found');const missing=fields.filter(f=>!Object.keys(data[0]).includes(f));if(missing.length)throw new Error('Missing columns: '+missing.join(', '));setRows(validateRows(data));setName(file.name)}catch(e){setError(e instanceof Error?e.message:'Unable to read spreadsheet')}}const valid=rows.filter(r=>!r.errors.length&&!r.duplicate).length;return <main><Link href="/">← Home</Link><h1>Smart Import</h1><p>Local preview only. No file is uploaded or saved. Template columns: {fields.join(', ')}.</p><div className="panel"><label htmlFor="upload">Select an Excel or CSV file</label><p><input id="upload" type="file" accept=".xlsx,.csv" onChange={e=>void load(e.target.files?.[0])}/></p>{error&&<p role="alert">{error}</p>}</div>{rows.length>0&&<><div className="grid"><div className="panel">Rows: {rows.length}</div><div className="panel">Valid: {valid}</div><div className="panel">Invalid: {rows.filter(r=>r.errors.length).length}</div><div className="panel">Duplicates: {rows.filter(r=>r.duplicate).length}</div></div><div className="panel"><h2>Preview · {name}</h2><div style={{overflowX:'auto'}}><table cellPadding="10"><thead><tr><th>Row</th><th>Record ID</th><th>Customer</th><th>Status</th></tr></thead><tbody>{rows.slice(0,100).map(r=><tr key={r.row}><td>{r.row}</td><td>{r.record.recordId}</td><td>{r.record.customerName}</td><td>{r.errors.join('; ')||(r.duplicate?'Duplicate':'Valid')}</td></tr>)}</tbody></table></div><p>First 100 rows shown. Import persistence is not yet implemented.</p></div></>}</main>}
+import {TARGET_FIELDS,suggestMapping,validateMapping,applyMapping,type FieldMapping} from '@/lib/mapping';
+const EMPTY_MAPPING=Object.fromEntries(TARGET_FIELDS.map(field=>[field,''])) as FieldMapping;
+export default function ImportPage(){
+ const [rawRows,setRawRows]=useState<Record<string,unknown>[]>([]);
+ const [headers,setHeaders]=useState<string[]>([]);
+ const [mapping,setMapping]=useState<FieldMapping>(EMPTY_MAPPING);
+ const [error,setError]=useState('');
+ const [name,setName]=useState('');
+ const mappingErrors=validateMapping(mapping);
+ const results:ValidationResult[]=rawRows.length&&!mappingErrors.length?validateRows(applyMapping(rawRows,mapping)):[];
+ const valid=results.filter(r=>!r.errors.length&&!r.duplicate).length;
+ async function load(file?:File){
+  setRawRows([]);setHeaders([]);setMapping(EMPTY_MAPPING);setError('');setName('');
+  if(!file)return;
+  if(!/\.(xlsx|csv)$/i.test(file.name)){setError('Only .xlsx and .csv files are supported');return;}
+  if(file.size>2_000_000){setError('Maximum file size is 2 MB');return;}
+  try{
+   const workbook=XLSX.read(await file.arrayBuffer(),{type:'array',cellFormula:false,cellHTML:false,cellNF:false});
+   const sheet=workbook.Sheets[workbook.SheetNames[0]];
+   if(!sheet)throw new Error('No worksheet found');
+   const headerRow=XLSX.utils.sheet_to_json<unknown[]>(sheet,{header:1,blankrows:false})[0]??[];
+   const foundHeaders=headerRow.map(String).map(s=>s.trim()).filter(Boolean);
+   if(new Set(foundHeaders).size!==foundHeaders.length)throw new Error('Duplicate column headers found');
+   const data=XLSX.utils.sheet_to_json<Record<string,unknown>>(sheet,{defval:'',raw:false});
+   if(data.length>1000)throw new Error('Maximum 1,000 rows per file');
+   if(!data.length)throw new Error('No records found');
+   setHeaders(foundHeaders);setMapping(suggestMapping(foundHeaders));setRawRows(data);setName(file.name);
+  }catch(e){setError(e instanceof Error?e.message:'Unable to read spreadsheet');}
+ }
+ return <main><Link href="/">← Home</Link><h1>Smart Import</h1><p>Preview only. Files are parsed in your browser and are not uploaded or saved. Maximum 2 MB / 1,000 rows.</p>
+ <div className="panel"><label htmlFor="upload">Select an Excel or CSV file</label><p><input id="upload" type="file" accept=".xlsx,.csv" onChange={e=>void load(e.target.files?.[0])}/></p>{error&&<p role="alert">{error}</p>}</div>
+ {rawRows.length>0&&<><section className="panel"><h2>Map source columns · {name}</h2><p>Choose which spreadsheet column fills each destination field. Required fields are marked *.</p><div className="grid">{TARGET_FIELDS.map(field=><label key={field} style={{display:'grid',gap:8}}>{field}{['recordId','customerName','description','date'].includes(field)?' *':''}<select aria-label={'Map '+field} value={mapping[field]} onChange={e=>setMapping(previous=>({...previous,[field]:e.target.value}))}><option value="">Not mapped</option>{headers.map(header=><option key={header} value={header}>{header}</option>)}</select></label>)}</div>{mappingErrors.length>0&&<div role="alert"><p>Resolve mapping issues:</p><ul>{mappingErrors.map(issue=><li key={issue}>{issue}</li>)}</ul></div>}</section>
+ {results.length>0&&<><div className="grid"><div className="panel">Rows: {results.length}</div><div className="panel">Valid: {valid}</div><div className="panel">Invalid: {results.filter(r=>r.errors.length).length}</div><div className="panel">Duplicates: {results.filter(r=>r.duplicate).length}</div></div><section className="panel"><h2>Mapped record preview</h2><div style={{overflowX:'auto'}}><table cellPadding="10"><thead><tr><th>Row</th><th>Record ID</th><th>Customer</th><th>Status</th></tr></thead><tbody>{results.slice(0,100).map(r=><tr key={r.row}><td>{r.row}</td><td>{r.record.recordId}</td><td>{r.record.customerName}</td><td>{[...r.errors,...(r.duplicate?['Duplicate ID']:[])].join('; ')||'Valid'}</td></tr>)}</tbody></table></div><p>First 100 rows shown. Saving and browser automation are not yet implemented.</p></section></>}</>}
+ </main>;
+}
