@@ -28,3 +28,9 @@ test('rejects duplicate CSV column headers',async({page})=>{
  await expect(page.getByText('Duplicate column headers found')).toBeVisible();
  await expect(page.getByTestId('transfer-to-crm')).toHaveCount(0);
 });
+
+test('rejects CSV rows with more cells than headers',async({page})=>{
+ await page.locator('input[type="file"]').setInputFiles({name:'extra-cells.csv',mimeType:'text/csv',buffer:Buffer.from('Case ID,Client Name,Notes,Created Date\nOVER-1,Synthetic Person,Test note,2026-10-20,UNEXPECTED')});
+ await expect(page.getByText('Row 2 has more values than column headers')).toBeVisible();
+ await expect(page.getByTestId('transfer-to-crm')).toHaveCount(0);
+});
