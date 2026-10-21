@@ -18,7 +18,7 @@ export async function parseSpreadsheet(file:File):Promise<ParsedSpreadsheet>{
   if(result.errors.length)throw new Error('CSV parse error: '+result.errors[0].message);
   return assemble(result.data);
  }
- const readXlsxFile=(await import('read-excel-file/browser')).default;
+ const readXlsxFile=(await import('read-excel-file')).default;
  const matrix=await readXlsxFile(file);
  return assemble(matrix);
 }
