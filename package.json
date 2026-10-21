@@ -16,8 +16,8 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zod": "^4.1.0",
-    "exceljs": "^4.4.0",
-    "papaparse": "^5.5.3"
+    "papaparse": "^5.5.3",
+    "read-excel-file": "^5.8.8"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -29,7 +29,8 @@
     "vitest": "^3.2.0",
     "@eslint/eslintrc": "^3.3.1",
     "@playwright/test": "^1.56.0",
-    "@types/papaparse": "^5.3.16"
+    "@types/papaparse": "^5.3.16",
+    "exceljs": "^4.4.0"
   },
   "overrides": {
     "postcss": "^8.5.23",
