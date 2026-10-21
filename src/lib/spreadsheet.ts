@@ -18,19 +18,7 @@ export async function parseSpreadsheet(file:File):Promise<ParsedSpreadsheet>{
   if(result.errors.length)throw new Error('CSV parse error: '+result.errors[0].message);
   return assemble(result.data);
  }
- const ExcelJS=(await import('exceljs')).default;
- const workbook=new ExcelJS.Workbook();
- await workbook.xlsx.load(await file.arrayBuffer() as never);
- const sheet=workbook.worksheets[0];
- if(!sheet)throw new Error('No worksheet found');
- const matrix:unknown[][]=[];
- sheet.eachRow({includeEmpty:false},row=>{
-  const values:unknown[]=[];
-  row.eachCell({includeEmpty:true},(cell,col)=>{
-   const v=cell.value;
-   values[col-1]=v instanceof Date?v.toISOString().slice(0,10):typeof v==='object'&&v!==null?'':v??'';
-  });
-  matrix.push(values);
- });
+ const readXlsxFile=(await import('read-excel-file/browser')).default;
+ const matrix=await readXlsxFile(file);
  return assemble(matrix);
 }
