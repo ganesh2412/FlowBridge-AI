@@ -25,7 +25,7 @@ test('CSV import maps fields and transfers only valid synthetic records',async({
  await page.goto('/history');
  await expect(page.getByRole('heading',{name:'Execution history'})).toBeVisible();
  await expect(page.getByRole('heading',{name:'synthetic-demo.csv'})).toBeVisible();
- await expect(page.getByText('Success rate: 50%')).toBeVisible();
+ await expect(page.locator('.metric-card').filter({hasText:'Success rate'})).toContainText('50%');
  await page.reload();
  await expect(page.getByRole('heading',{name:'synthetic-demo.csv'})).toBeVisible();
  const historyDownloadPromise=page.waitForEvent('download');
